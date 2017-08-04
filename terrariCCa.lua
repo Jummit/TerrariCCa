@@ -45,8 +45,27 @@ new = {
       draw = function(self, txtrx, txtry)
         for y, texturestring in pairs(self.texture_table) do
           for x, txtr in pairs(texturestring) do if txtr then
-            term.setCursorPos(txtrx+x+self.anchorX-1,txtry+y+self.anchorY-1)
-            term.blit(txtr[1], txtr[2], txtr[3])
+            local char = txtr[1]
+            local charCol = txtr[2]
+            local backCol = txtr[3]
+            local drawX = txtrx+x+self.anchorX-1
+            local drawY = txtry+y+self.anchorY-1
+            local nearest_light = world.lights.sun
+            local light_distance = distance(nearest_light.x, nearest_light.y, drawX, drawY)
+
+            for _, light in pairs(world.lights) do
+              if distance(light.x, light.y, drawX, drawY) < light_distance then nearest_light = light end
+            end
+
+            if light_distance < nearest_light.power/6 then charCol = nearest_light.color
+            elseif light_distance < nearest_light.power/3 then backCol = darker[backCol]
+            elseif light_distance < nearest_light.power/2 then backCol = darker[backCol] charCol = darker[charCol] char = "\127"
+            elseif light_distance < nearest_light.power/1 then if char == " " then char = "\127" end backCol = darker[backCol] backCol = darker[backCol] charCol = darker[charCol] charCol = darker[charCol]
+          else backCol = darker[darker[darker[backCol]]] charCol = darker[darker[charCol]] if char == " " then char = "\127" end
+            end
+
+            term.setCursorPos(drawX, drawY)
+            term.blit(char, charCol, backCol)
           end end
         end
       end
@@ -433,7 +452,9 @@ world = {
   entitys = {
     player = get_instance_of(references.entitys.player, {x=1,y=1})
   },
-  lights = {}
+  lights = {
+    sun = new.light(1, 1, 4, "4")
+  }
 }
 
 function generate_world(world_w, world_h, world_surface)
@@ -503,8 +524,6 @@ end
 
 local w, h = term.getSize()
 generate_world(w*3, h*2, 20)
-
-sleep(1)
 
 local buffer = window.create(term.current(), 1, 1, w, h)
 
