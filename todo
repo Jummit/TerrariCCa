@@ -1,0 +1,21 @@
+#Textures draw
+#Blocks:
+#  dirt
+#  grass
+#  stone
+#  stonewall
+#  air
+#  smallplant
+#  log
+#  planks
+
+#make a block and draw it
+#make the player and draw it
+#draw function with blocks and entitys
+#add biomes
+#generate surface with biomes
+#generate block orbs
+#generate trees
+#move player
+#camera lock to player
+ALL DONE!!!!

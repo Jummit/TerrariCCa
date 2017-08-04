@@ -517,6 +517,13 @@ function draw_things()
 end
 
 function update(event, var1, var2, var3)
+  world.lights.sun.x = world.entitys.player.x
+  if world.lights.sun.power == 1000 then
+    sunmode = -1
+  elseif world.lights.sun.power == 4 then
+    sunmode = 1
+  end
+  world.lights.sun.power = world.lights.sun.power+sunmode
   for _, entity in pairs(world.entitys) do
     entity:update(event, var1, var2, var3)
   end
@@ -524,7 +531,7 @@ end
 
 local w, h = term.getSize()
 generate_world(w*3, h*2, 20)
-
+local sunmode = 1
 local buffer = window.create(term.current(), 1, 1, w, h)
 
 while true do
