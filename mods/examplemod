@@ -1,0 +1,62 @@
+os.loadAPI("/terrariCCa.lua")
+terra = _G["terrariCCa.lua"]
+
+error(terra)
+name = "examplemod"
+description = "an mod which shows how mods works"
+
+water = terra.new.block(
+  new.texture(
+    {
+      {
+        {" ", "b", "b"}
+      }
+    }
+  ),
+  "water",
+  1,
+  0,
+  false,
+  "air"
+)
+
+references = {
+  blocks = {
+    biomes = {
+      ocean = {
+        dirt = water,
+        grass = water,
+        stone = water,
+        stonewall = water,
+        plant = water,
+        leaves = water
+      }
+    }
+  },
+  entitys = {},
+  items = {
+    compass = new.item(
+      new.texture(
+        {
+          {{"\159", "6", "7"}, {"\144", "2", "b"}},
+          {{"\138", "3", "4"}, {"\133", "6", "d"}}
+        },
+        2,
+        2,
+        true
+      ),
+      "compass2.0",
+      function()
+      end,
+      0
+    )
+  },
+  blockgens = {}
+}
+
+functs = {
+  update = function(event, var1, var2, var3)
+  end,
+  init = function()
+  end
+}
