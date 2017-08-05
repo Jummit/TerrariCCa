@@ -171,7 +171,26 @@ new = {
       name = name,
       use_function = use_function,
       glowing_strenght = glowing_strenght,
-      draw = function(x, y)
+      draw = function(self, x, y)
+        self.texture:draw(x, y)
+      end
+    }
+  end,
+  slot = function(x, y, col, shortcut, itemtypes)
+    return {
+      x=x, y=y,
+      col=col,
+      shortcut=shortcut,
+      itemtypes=itemtypes,
+      draw = function(self)
+        term.setCursorPos(self.x, self.y-1)
+        term.blit("/\175\\", self.col..self.col..self.col, "333")
+        term.setCursorPos(self.x, self.y)
+        term.blit("|\0|", self.col..self.col..self.col, "333")
+        term.setCursorPos(self.x, self.y+1)
+        term.blit("\\_/", self.col..self.col..self.col, "333")
+      end,
+      update = function(event, var1, var2, var3)
       end
     }
   end
@@ -447,6 +466,10 @@ references = {
   }
 }
 
+slots = {
+  new.slot(4, 4, "9", "1")
+}
+
 world = {
   blocks = {},
   entitys = {
@@ -516,6 +539,12 @@ function draw_things()
   end
 end
 
+function draw_slots()
+  for _, slot in pairs(slots) do
+    slot:draw()
+  end
+end
+
 function update(event, var1, var2, var3)
   world.lights.sun.x = world.entitys.player.x
   if world.lights.sun.power == 1000 then
@@ -554,6 +583,7 @@ while true do
   buffer.redraw()
   buffer.setVisible(true)
   term.redirect(term.native())
+  draw_slots()
   local startTime = os.clock()
   local timer = os.startTimer(dt)
   event, var1, var2, var3 = os.pullEventRaw()
