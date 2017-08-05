@@ -177,21 +177,40 @@ new = {
       end
     }
   end,
-  slot = function(x, y, col, shortcut, itemtypes)
+  slot = function(x, y, col, backcol, shortcut, itemtypes)
     return {
       x=x, y=y,
       col=col,
+      backcol=backcol,
       shortcut=shortcut,
       itemtypes=itemtypes,
       draw = function(self)
-        term.setCursorPos(self.x, self.y-1)
-        term.blit("/\175\\", self.col..self.col..self.col, "333")
-        term.setCursorPos(self.x, self.y)
-        term.blit("|\0|", self.col..self.col..self.col, "333")
+        term.setCursorPos(self.x+1, self.y)
+        term.blit("__", self.backcol..self.backcol, self.col..self.col)
         term.setCursorPos(self.x, self.y+1)
-        term.blit("\\_/", self.col..self.col..self.col, "333")
+        term.blit("|\0\0|", self.backcol..self.backcol..self.backcol..self.backcol, self.col..self.col..self.col..self.col)
+        term.setCursorPos(self.x, self.y+2)
+        term.blit("|\0\0|", self.backcol..self.backcol..self.backcol..self.backcol, self.col..self.col..self.col..self.col)
+        term.setCursorPos(self.x+1, self.y+3)
+        term.blit("\175\175", self.backcol..self.backcol, self.col..self.col)
+        if self.shortcut then
+          term.setCursorPos(self.x+3, self.y+3)
+          term.blit(self.shortcut, "e", self.col)
+        end
+        if self.item then
+          self.item.texture:draw(self.x, self.y)
+        end
       end,
-      update = function(event, var1, var2, var3)
+      update = function(self, event, var1, var2, var3)
+        if event == "mouse_click" and var2>=self.x+1 and var3>=self.y+1 then
+          if var2<=self.x+2 and var3<=self.y+2 then
+            if var1 == 1 then
+              if dragitem~=nil and self.item==nil then self.item = dragitem dragitem = nil
+              else dragitem = self.item self.item = nil
+              end
+            end
+          end
+        end
       end
     }
   end
@@ -444,7 +463,22 @@ references = {
       end
     )
   },
-  items = {},
+  items = {
+    deth_meter = new.item(
+      new.texture(
+        {
+          {{"\142", "8", "4"}, {"\141", "8", "4"}},
+          {{"\141", "8", "0"}, {"\142", "8", "e"}}
+        },
+        1,
+        1
+      ),
+      "deth meter",
+      function()
+      end,
+      0
+    )
+  },
   blockgens = {
     new.blockgen(4, {"stonewall"}, {"stone"}, 3),
     new.blockgen(
@@ -469,15 +503,16 @@ references = {
 
 slots = {
   hotbar = {
-    new.slot(3, 3, "9", "1"),
-    new.slot(5, 3, "9", "1"),
-    new.slot(7, 3, "9", "1"),
-  },
-  inventory = {
-
+    new.slot(1, 1, "3", "9", "1"),
+    new.slot(5, 1, "3", "9", "2"),
+    new.slot(9, 1, "3", "9", "3"),
+    new.slot(13, 1, "3", "9", "4"),
+    new.slot(17, 1, "3", "9", "5"),
+    new.slot(21, 1, "3", "9", "6"),
   }
 }
 
+slots.hotbar[1].item = references.items.deth_meter
 world = {
   blocks = {},
   entitys = {
@@ -565,6 +600,11 @@ function update(event, var1, var2, var3)
   world.lights.sun.power = world.lights.sun.power+sunmode
   for _, entity in pairs(world.entitys) do
     entity:update(event, var1, var2, var3)
+  end
+  for _, slottable in pairs(slots) do
+    for _, slot in pairs(slottable) do
+      slot:update(event, var1, var2, var3)
+    end
   end
 end
 
