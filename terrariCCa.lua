@@ -57,7 +57,8 @@ new = {
               if distance(light.x, light.y, drawX, drawY) < light_distance then nearest_light = light end
             end
 
-            if light_distance < nearest_light.power/6 then charCol = nearest_light.color
+            if light_distance < nearest_light.power/12 then charCol = nearest_light.color
+            elseif light_distance < nearest_light.power/2 then
             elseif light_distance < nearest_light.power/3 then backCol = darker[backCol]
             elseif light_distance < nearest_light.power/2 then backCol = darker[backCol] charCol = darker[charCol] char = "\127"
             elseif light_distance < nearest_light.power/1 then if char == " " then char = "\127" end backCol = darker[backCol] backCol = darker[backCol] charCol = darker[charCol] charCol = darker[charCol]
@@ -467,7 +468,14 @@ references = {
 }
 
 slots = {
-  new.slot(4, 4, "9", "1")
+  hotbar = {
+    new.slot(3, 3, "9", "1"),
+    new.slot(5, 3, "9", "1"),
+    new.slot(7, 3, "9", "1"),
+  },
+  inventory = {
+
+  }
 }
 
 world = {
@@ -540,14 +548,16 @@ function draw_things()
 end
 
 function draw_slots()
-  for _, slot in pairs(slots) do
-    slot:draw()
+  for _, slottable in pairs(slots) do
+    for _, slot in pairs(slottable) do
+      slot:draw()
+    end
   end
 end
 
 function update(event, var1, var2, var3)
   world.lights.sun.x = world.entitys.player.x
-  if world.lights.sun.power == 1000 then
+  if world.lights.sun.power == 300 then
     sunmode = -1
   elseif world.lights.sun.power == 4 then
     sunmode = 1
