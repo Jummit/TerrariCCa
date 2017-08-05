@@ -37,11 +37,12 @@ function distance(x1, y1, x2, y2)
 end
 
 new = {
-  texture = function(texture_table, anchorX, anchorY)
+  texture = function(texture_table, anchorX, anchorY, noshader)
     return {
       texture_table=texture_table,
       anchorX = anchorX or 0,
       anchorY = anchorY or 0,
+      noshader=noshader,
       draw = function(self, txtrx, txtry)
         for y, texturestring in pairs(self.texture_table) do
           for x, txtr in pairs(texturestring) do if txtr then
@@ -50,24 +51,26 @@ new = {
             local backCol = txtr[3]
             local drawX = txtrx+x+self.anchorX-1
             local drawY = txtry+y+self.anchorY-1
-            local nearest_light = world.lights.sun
-            local light_distance = distance(nearest_light.x, nearest_light.y, drawX, drawY)
+            if not self.noshader then
+              local nearest_light = world.lights.sun
+              local light_distance = distance(nearest_light.x, nearest_light.y, drawX, drawY)
 
-            for _, light in pairs(world.lights) do
-              if distance(light.x, light.y, drawX, drawY) < light_distance then nearest_light = light end
+              for _, light in pairs(world.lights) do
+                if distance(light.x, light.y, drawX, drawY) < light_distance then nearest_light = light end
+              end
+
+              if light_distance < nearest_light.power/12 then charCol = nearest_light.color
+              elseif light_distance < nearest_light.power/2 then
+              elseif light_distance < nearest_light.power/3 then backCol = darker[backCol]
+              elseif light_distance < nearest_light.power/2 then backCol = darker[backCol] charCol = darker[charCol] char = "\127"
+              elseif light_distance < nearest_light.power/1 then if char == " " then char = "\127" end backCol = darker[backCol] backCol = darker[backCol] charCol = darker[charCol] charCol = darker[charCol]
+              else backCol = darker[darker[darker[backCol]]] charCol = darker[darker[charCol]] if char == " " then char = "\127" end
+              end
             end
-
-            if light_distance < nearest_light.power/12 then charCol = nearest_light.color
-            elseif light_distance < nearest_light.power/2 then
-            elseif light_distance < nearest_light.power/3 then backCol = darker[backCol]
-            elseif light_distance < nearest_light.power/2 then backCol = darker[backCol] charCol = darker[charCol] char = "\127"
-            elseif light_distance < nearest_light.power/1 then if char == " " then char = "\127" end backCol = darker[backCol] backCol = darker[backCol] charCol = darker[charCol] charCol = darker[charCol]
-          else backCol = darker[darker[darker[backCol]]] charCol = darker[darker[charCol]] if char == " " then char = "\127" end
-            end
-
             term.setCursorPos(drawX, drawY)
             term.blit(char, charCol, backCol)
-          end end
+            end
+          end
         end
       end
     }
@@ -464,16 +467,17 @@ references = {
     )
   },
   items = {
-    deth_meter = new.item(
+    compass = new.item(
       new.texture(
         {
-          {{"\142", "8", "4"}, {"\141", "8", "4"}},
-          {{"\141", "8", "0"}, {"\142", "8", "e"}}
+          {{"\159", "3", "7"}, {"\144", "7", "3"}},
+          {{"\138", "0", "7"}, {"\133", "e", "7"}}
         },
         1,
-        1
+        1,
+        true
       ),
-      "deth meter",
+      "compass",
       function()
       end,
       0
@@ -512,7 +516,7 @@ slots = {
   }
 }
 
-slots.hotbar[1].item = references.items.deth_meter
+slots.hotbar[1].item = references.items.compass
 world = {
   blocks = {},
   entitys = {
@@ -597,7 +601,7 @@ function update(event, var1, var2, var3)
   elseif world.lights.sun.power == 4 then
     sunmode = 1
   end
-  world.lights.sun.power = world.lights.sun.power+sunmode
+  world.lights.sun.power = world.lights.sun.power+0.2*sunmode
   for _, entity in pairs(world.entitys) do
     entity:update(event, var1, var2, var3)
   end
