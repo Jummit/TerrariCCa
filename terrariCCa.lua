@@ -1,4 +1,4 @@
-local dt = 0.05
+local dt = 0.01
 
 darker = {
   ["0"] = "8",
@@ -148,8 +148,8 @@ new = {
       custom_update=custom_update,
       is_right_solid = function(self)
         local solid = false
-        for y = self.y-self.texture.anchorY, self.y-self.texture.anchorY do
-          if world.blocks[y][self.x+self.texture.anchorX].solid then
+        for y = self.y-self.texture.anchorY-1, self.y-self.texture.anchorY do
+          if world.blocks[y][self.x+1].solid then
             solid = true
           end
         end
@@ -157,8 +157,8 @@ new = {
       end,
       is_left_solid = function(self)
         local solid = false
-        for y = self.y-self.texture.anchorY, self.y-self.texture.anchorY do
-          if world.blocks[y][self.x-self.texture.anchorX].solid then
+        for y = self.y-self.texture.anchorY-1, self.y-self.texture.anchorY do
+          if world.blocks[y][self.x].solid then
             solid = true
           end
         end
@@ -635,7 +635,7 @@ end
 
 local w, h = term.getSize()
 generate_world(w*3, h*2, 20)
-local sunmode = 1
+local sunmode = 3
 local buffer = window.create(term.current(), 1, 1, w, h)
 
 while true do
