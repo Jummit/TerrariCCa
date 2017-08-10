@@ -1,4 +1,4 @@
-local dt = 0.1
+local dt = 0.05
 
 darker = {
   ["0"] = "8",
@@ -146,6 +146,27 @@ new = {
       jumppower=0,
       is_name_shown=is_name_shown,
       custom_update=custom_update,
+      is_right_solid = function(self)
+        local solid = false
+        for y = self.y-self.texture.anchorY, self.y-self.texture.anchorY do
+          if world.blocks[y][self.x+self.texture.anchorX].solid then
+            solid = true
+          end
+        end
+        return solid
+      end,
+      is_left_solid = function(self)
+        local solid = false
+        for y = self.y-self.texture.anchorY, self.y-self.texture.anchorY do
+          if world.blocks[y][self.x-self.texture.anchorX].solid then
+            solid = true
+          end
+        end
+        return solid
+      end,
+      is_top_solid = function(self)
+        return false
+      end,
       stands_on_solid = function(self)
         return world.blocks[self.y+2][self.x].solid
       end,
@@ -455,9 +476,9 @@ references = {
       true,
       function(self, event, var1, var2, var3)
         if event == "key" then
-          if var1 == keys.d then
+          if var1 == keys.d and not self:is_right_solid() then
             self.x = self.x + 1
-          elseif var1 == keys.a then
+          elseif var1 == keys.a and not self:is_left_solid() then
             self.x = self.x - 1
           elseif var1 == keys.space and self:stands_on_solid() then
             self.jumppower = 3
