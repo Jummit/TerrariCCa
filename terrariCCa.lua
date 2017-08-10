@@ -464,7 +464,7 @@ references = {
       1, 1,
       new.texture(
         {
-          {nil, {"\2", "0", "6"}, nil},
+          {nil, {"\2", "4", "6"}, nil},
           {{"\138", "d", "5"}, {"H", "5", "d"}, {"\133", "d", "5"}},
           {nil, {"M", "9", "b"}, nil}
         },
@@ -482,6 +482,16 @@ references = {
             self.x = self.x - 1
           elseif var1 == keys.space and self:stands_on_solid() then
             self.jumppower = 3
+          end
+        elseif string.sub(event, 1, 5) == "mouse" then
+          local mouse_button = var1
+          local mouse_x = var2
+          local mouse_y = var3
+          local window_x, window_y = term.getSize()
+          local map_x = math.ceil(mouse_x+self.x-window_x/2)+1
+          local map_y = math.ceil(mouse_y+self.y-window_y/2)+1
+          if world.blocks[map_y] and world.blocks[map_y][map_x] then
+            world.blocks[map_y][map_x] = get_instance_of(references.blocks.air)
           end
         end
       end
@@ -648,13 +658,7 @@ while true do
     h+world.entitys.player.y)
   term.clear()
   draw_things()
-  buffer.reposition(
-    math.floor(w/2)-world.entitys.player.x,
-    math.floor(h/2)-world.entitys.player.y
-  )
-  local bufx, bufy = buffer.getPosition()
-  if bufx > 1 then buffer.reposition(1, bufy) end
-  if bufy > 1 then buffer.reposition(bufx, 1) end
+  buffer.reposition(math.floor(w/2)-world.entitys.player.x, math.floor(h/2)-world.entitys.player.y)
   buffer.redraw()
   buffer.setVisible(true)
   term.redirect(term.native())
