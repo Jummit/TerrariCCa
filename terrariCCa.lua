@@ -19,6 +19,10 @@ darker = {
   ["f"] = "f",
 }
 
+breakstages = {
+  ".", ",", "·", ":", ";", "i", "|", "I", "ß", "#", "@", "O", "Q"
+}
+
 function get_instance_of(thing, vars)
   local tempthing = {}
   for k, v in pairs(thing) do
@@ -80,11 +84,21 @@ new = {
       texture=texture,
       name=name,
       hardness=hardness,
+      breakstage=0,
       glowing_strenght=glowing_strenght,
       solid=solid,
       afterblock=afterblock,
       draw = function(self, x, y)
+        local old_texture = self.texture.texture_table[1][1][1]
+        if self.breakstage>0 then
+          if breakstages[self.breakstage] then
+            self.texture.texture_table[1][1][1] = breakstages[self.breakstage]
+          else
+            self.texture.texture_table[1][1][1] = breakstages[#breakstages]
+          end
+        end
         self.texture:draw(x, y)
+        self.texture.texture_table[1][1][1] = old_texture
       end
     }
   end,
@@ -190,9 +204,10 @@ new = {
       end
     }
   end,
-  item = function(texture, name, use_function, glowing_strenght)
+  item = function(texture, name, use_function, glowing_strenght, toolpower)
     return {
       texture = texture,
+      toolpower=toolpower or 0,
       name = name,
       use_function = use_function,
       glowing_strenght = glowing_strenght,
@@ -242,180 +257,6 @@ new = {
 
 references = {
   blocks = {
-    biomes = {
-      normal = {
-        dirt = new.block(
-          new.texture(
-            {
-              {
-                {" ", "7", "c"}
-              }
-            }
-          ),
-          "dirt",
-          5,
-          0,
-          true,
-          "air"
-        ),
-        grass = new.block(
-          new.texture(
-            {
-              {
-                {"M", "5", "d"}
-              }
-            }
-          ),
-          "grass",
-          1,
-          0,
-          true,
-          "dirt"
-        ),
-        stone = new.block(
-          new.texture(
-            {
-              {
-                {" ", "f", "7"}
-              }
-            }
-          ),
-          "stone",
-          10,
-          0,
-          true,
-          "stonewall"
-        ),
-        stonewall = new.block(
-          new.texture(
-            {
-              {
-                {"´", "7", "8"}
-              }
-            }
-          ),
-          "stonewall",
-          100,
-          0,
-          false,
-          "air"
-        ),
-        plant = new.block(
-          new.texture(
-            {
-              {
-                {"p", "d", "3"}
-              }
-            }
-          ),
-          "plant",
-          2,
-          0,
-          false,
-          "air"
-        ),
-        leaves = new.block(
-          new.texture(
-            {
-              {
-                {"w", "5", "d"}
-              }
-            }
-          ),
-          "leaves",
-          2,
-          0,
-          false,
-          "air"
-        ),
-      },
-      ice = {
-        dirt = new.block(
-          new.texture(
-            {
-              {
-                {"\127", "0", "3"}
-              }
-            }
-          ),
-          "icedirt",
-          7,
-          0,
-          true,
-          "icewall"
-        ),
-        grass = new.block(
-          new.texture(
-            {
-              {
-                {" ", "3", "0"}
-              }
-            }
-          ),
-          "icegrass",
-          3,
-          0,
-          true,
-          "icedirt"
-        ),
-        stone = new.block(
-          new.texture(
-            {
-              {
-                {"\127", "9", "3"}
-              }
-            }
-          ),
-          "ice",
-          6,
-          0,
-          true,
-          "icewall"
-        ),
-        stonewall = new.block(
-          new.texture(
-            {
-              {
-                {"\127", "3", "0"}
-              }
-            }
-          ),
-          "icewall",
-          10,
-          0,
-          false,
-          "air"
-        ),
-        plant = new.block(
-          new.texture(
-            {
-              {
-                {"\165", "b", "3"}
-              }
-            }
-          ),
-          "iceflower",
-          3,
-          0,
-          false,
-          "air"
-        ),
-        leaves = new.block(
-          new.texture(
-            {
-              {
-                {"w", "3", "0"}
-              }
-            }
-          ),
-          "leaves",
-          2,
-          0,
-          false,
-          "air"
-        ),
-      }
-    },
     air = new.block(
       new.texture(
         {
@@ -458,6 +299,174 @@ references = {
       true,
       "air"
     ),
+    dirt = new.block(
+      new.texture(
+        {
+          {
+            {" ", "7", "c"}
+          }
+        }
+      ),
+      "dirt",
+      5,
+      0,
+      true,
+      "air"
+    ),
+    grass = new.block(
+      new.texture(
+        {
+          {
+            {"M", "5", "d"}
+          }
+        }
+      ),
+      "grass",
+      1,
+      0,
+      true,
+      "dirt"
+    ),
+    stone = new.block(
+      new.texture(
+        {
+          {
+            {" ", "f", "7"}
+          }
+        }
+      ),
+      "stone",
+      10,
+      0,
+      true,
+      "stonewall"
+    ),
+    stonewall = new.block(
+      new.texture(
+        {
+          {
+            {"´", "7", "8"}
+          }
+        }
+      ),
+      "stonewall",
+      100,
+      0,
+      false,
+      "air"
+    ),
+    plant = new.block(
+      new.texture(
+        {
+          {
+            {"p", "d", "3"}
+          }
+        }
+      ),
+      "plant",
+      2,
+      0,
+      false,
+      "air"
+    ),
+    leaves = new.block(
+      new.texture(
+        {
+          {
+            {"w", "5", "d"}
+          }
+        }
+      ),
+      "leaves",
+      2,
+      0,
+      false,
+      "air"
+    ),
+    icedirt = new.block(
+      new.texture(
+        {
+          {
+            {"\127", "0", "3"}
+          }
+        }
+      ),
+      "icedirt",
+      7,
+      0,
+      true,
+      "air"
+    ),
+    icegrass = new.block(
+      new.texture(
+        {
+          {
+            {" ", "3", "0"}
+          }
+        }
+      ),
+      "icegrass",
+      3,
+      0,
+      true,
+      "icedirt"
+    ),
+    icestone = new.block(
+      new.texture(
+        {
+          {
+            {"\127", "9", "3"}
+          }
+        }
+      ),
+      "ice",
+      6,
+      0,
+      true,
+      "icewall"
+    ),
+    icestonewall = new.block(
+      new.texture(
+        {
+          {
+            {"\127", "3", "0"}
+          }
+        }
+      ),
+      "icewall",
+      10,
+      0,
+      false,
+      "air"
+    ),
+    iceplant = new.block(
+      new.texture(
+        {
+          {
+            {"\165", "b", "3"}
+          }
+        }
+      ),
+      "iceflower",
+      3,
+      0,
+      false,
+      "air"
+    ),
+    iceleaves = new.block(
+      new.texture(
+        {
+          {
+            {"w", "3", "0"}
+          }
+        }
+      ),
+      "leaves",
+      2,
+      0,
+      false,
+      "air"
+    ),
   },
   entitys = {
     player = new.entity(
@@ -490,8 +499,8 @@ references = {
           local window_x, window_y = term.getSize()
           local map_x = math.ceil(mouse_x+self.x-window_x/2)+1
           local map_y = math.ceil(mouse_y+self.y-window_y/2)+1
-          if world.blocks[map_y] and world.blocks[map_y][map_x] then
-            world.blocks[map_y][map_x] = get_instance_of(references.blocks.air)
+          if world.blocks[map_y] and world.blocks[map_y][map_x] and world.blocks[map_y][map_x].hardness then
+            world.blocks[map_y][map_x].breakstage = world.blocks[map_y][map_x].breakstage + 1
           end
         end
       end
@@ -512,6 +521,22 @@ references = {
       function()
       end,
       0
+    ),
+    pickaxe = new.item(
+      new.texture(
+        {
+          {{"\159", "3", "7"}, {"\144", "7", "3"}},
+          {{"\138", "0", "7"}, {"\133", "e", "7"}}
+        },
+        1,
+        1,
+        true
+      ),
+      "iron pickaxe",
+      function()
+      end,
+      0,
+      1
     )
   },
   blockgens = {
@@ -536,6 +561,25 @@ references = {
   }
 }
 
+references.blocks.biomes = {
+  normal = {
+    dirt = references.blocks.dirt,
+    grass = references.blocks.grass,
+    stone = references.blocks.stone,
+    stonewall = references.blocks.stonewall,
+    plant = references.blocks.plant,
+    leaves = references.blocks.leaves
+  },
+  ice = {
+    dirt = references.blocks.icedirt,
+    grass = references.blocks.icegrass,
+    stone = references.blocks.icestone,
+    stonewall = references.blocks.icestonewall,
+    plant = references.blocks.iceplant,
+    leaves = references.blocks.iceleaves
+  },
+}
+
 slots = {
   hotbar = {
     new.slot(1, 1, "3", "9", "1"),
@@ -547,14 +591,15 @@ slots = {
   }
 }
 
-slots.hotbar[1].item = references.items.compass
+slots.hotbar[2].item = get_instance_of(references.items.pickaxe)
+slots.hotbar[1].item = get_instance_of(references.items.compass)
 world = {
   blocks = {},
   entitys = {
     player = get_instance_of(references.entitys.player, {x=1,y=1})
   },
   lights = {
-    sun = new.light(1, 1, 4, "4")
+    sun = new.light(1, 1, 200, "4")
   }
 }
 
@@ -580,7 +625,7 @@ function generate_world(world_w, world_h, world_surface)
       end
 
       if not world.blocks[y] then world.blocks[y] = {} end
-      world.blocks[y][x] = block
+      world.blocks[y][x] = get_instance_of(block)
       if math.random(1, 10) then
         mode = math.random(3)-2
       end
@@ -609,6 +654,11 @@ end
 function draw_things()
   for y, yblocks in pairs(world.blocks) do
     for x, block in pairs(yblocks) do
+      if block.breakstage>=block.hardness then
+        local afterblock = references.blocks[block.afterblock]
+        if not afterblock then afterblock = references.blocks.air end
+        world.blocks[y][x] = get_instance_of(afterblock)
+      end
       block:draw(x, y)
     end
   end
@@ -624,7 +674,7 @@ function draw_slots()
     end
   end
 end
-
+local sunmode = 1
 function update(event, var1, var2, var3)
   world.lights.sun.x = world.entitys.player.x
   if world.lights.sun.power == 300 then
@@ -651,11 +701,7 @@ local buffer = window.create(term.current(), 1, 1, w, h)
 while true do
   term.redirect(buffer)
   buffer.setVisible(false)
-  buffer.reposition(
-    -math.floor(w/2)-world.entitys.player.x,
-    -math.floor(h/2)-world.entitys.player.y,
-    w+world.entitys.player.x,
-    h+world.entitys.player.y)
+  buffer.reposition(-math.floor(w/2)-world.entitys.player.x, -math.floor(h/2)-world.entitys.player.y, w+world.entitys.player.x, h+world.entitys.player.y)
   term.clear()
   draw_things()
   buffer.reposition(math.floor(w/2)-world.entitys.player.x, math.floor(h/2)-world.entitys.player.y)
