@@ -162,7 +162,7 @@ new = {
       custom_update=custom_update,
       is_right_solid = function(self)
         local solid = false
-        for y = self.y-self.texture.anchorY-1, self.y-self.texture.anchorY do
+        for y = self.y-self.texture.anchorY-2, self.y-self.texture.anchorY do
           if world.blocks[y][self.x+1].solid then
             solid = true
           end
@@ -171,7 +171,7 @@ new = {
       end,
       is_left_solid = function(self)
         local solid = false
-        for y = self.y-self.texture.anchorY-1, self.y-self.texture.anchorY do
+        for y = self.y-self.texture.anchorY-2, self.y-self.texture.anchorY do
           if world.blocks[y][self.x-1].solid then
             solid = true
           end
@@ -266,7 +266,7 @@ references = {
         }
       ),
       "air",
-      1000,
+      false,
       2,
       false,
       "air"
@@ -654,7 +654,7 @@ end
 function draw_things()
   for y, yblocks in pairs(world.blocks) do
     for x, block in pairs(yblocks) do
-      if block.breakstage>=block.hardness then
+      if block.hardness and block.breakstage>=block.hardness then
         local afterblock = references.blocks[block.afterblock]
         if not afterblock then afterblock = references.blocks.air end
         world.blocks[y][x] = get_instance_of(afterblock)
