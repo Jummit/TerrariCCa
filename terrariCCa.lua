@@ -20,7 +20,7 @@ darker = {
 }
 
 breakstages = {
-  ".", ",", "·", ":", ";", "i", "|", "I", "ß", "#", "@", "O", "Q"
+  ".", ",", "·", ":", ";", "i", "|", "I", "ß", "#", "@"
 }
 
 function get_instance_of(thing, vars)
@@ -172,7 +172,7 @@ new = {
       is_left_solid = function(self)
         local solid = false
         for y = self.y-self.texture.anchorY-1, self.y-self.texture.anchorY do
-          if world.blocks[y][self.x].solid then
+          if world.blocks[y][self.x-1].solid then
             solid = true
           end
         end
