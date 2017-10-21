@@ -1,0 +1,12 @@
+{
+  pickaxe = {
+    name = "pickaxe",
+    texture = {"/", "2", "c"},
+    level = 1
+  },
+  hammer = {
+    name = "hammer",
+    texture = {""},
+    level = 1
+  }
+}

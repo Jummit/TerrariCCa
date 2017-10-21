@@ -1,0 +1,277 @@
+function all()
+local dt = 0.1
+local screen_width, screen_height = term.getSize()
+local world_width = screen_width*3
+local world_height = screen_height*3
+local screen_off_x = 0
+local screen_off_y = 0
+local clear_term = false
+local debug = false
+local buffer = window.create(term.current(), 1, 1, world_width, world_height)
+local assets = {
+  blocks = {},
+  items = {}
+}
+local background = paintutils.loadImage("assets/background")
+
+local mods_files = fs.list("assets")
+for mods_number = 1, #mods_files do
+  if fs.isDir("assets/"..mods_files[mods_number]) then
+    local assets_files = fs.list("assets/"..mods_files[mods_number])
+    for asset_number = 1, #assets_files do
+      local asset = textutils.unserialize(
+        fs.open("assets/"..mods_files[mods_number].."/"..assets_files[asset_number], "r").readAll()
+      )
+      for asset_key, asset_value in pairs(asset) do
+        assets[assets_files[asset_number]][asset_key] = asset_value
+      end
+    end
+  end
+end
+
+local function distance()
+  return math.root()
+end
+
+local function copy(tab)
+  if type(tab) == "table" then
+    local return_table = {}
+    for key, value in pairs(tab) do
+      if type(value) == "table" then
+        return_table[key] = copy(value)
+      else
+        return_table[key] = value
+      end
+    end
+    return return_table
+  end
+end
+
+local function draw_texture(texture, x, y)
+  term.setCursorPos(x, y)
+  term.blit(texture[1], texture[2], texture[3])
+end
+
+local player = {
+  texture = {"I", "e", "4"},
+  inventory = {},
+  selected_slot = 1,
+  x = math.floor(world_width/2),
+  y = 4,
+  jumped = false,
+  max_jump_power = 6,
+  jump_power = 0,
+  get_selected_item = function(self)
+    return self.inventory[self.selected_slot]
+  end,
+  pick_item = function(self, item, count)
+    for slot = 1, #self.inventory do
+      if self.inventory[slot].name == item.name then
+        self.inventory[slot].count = self.inventory[slot].count + 1
+        return
+      end
+    end
+    item.count = count
+    table.insert(self.inventory, item)
+  end,
+  remove_item = function(self, count, slot)
+    local slot = slot or self.selected_slot
+    if self.inventory[slot] then
+      if self:get_selected_item().count >= count then
+        self.inventory[self.selected_slot].count = self.inventory[self.selected_slot].count - count
+      end
+      if self.inventory[self.selected_slot].count == 0 then self.inventory[self.selected_slot] = nil end
+    end
+  end,
+  move = function(self, x_move, y_move, world)
+    if not world:get_block(
+      self.x+math.floor(x_move),
+      self.y+math.floor(y_move)).solid
+      then
+      self.x = self.x+x_move
+      self.y = self.y+y_move
+    end
+  end,
+  draw = function(self)
+    draw_texture(self.texture, self.x, self.y)
+  end,
+  draw_inventory = function(self, x, y)
+    for slot = 1, #self.inventory do
+      if slot == self.selected_slot then term.setBackgroundColor(colors.red)
+      else term.setBackgroundColor(colors.lightBlue) end
+      paintutils.drawFilledBox(x+slot*3-1, y-1, x+slot*3+1, y+1)
+      if self.inventory[slot] then
+        draw_texture(self.inventory[slot].texture, x+slot*3, y)
+        term.setCursorPos(x+slot*3, y+1)
+        term.write(self.inventory[slot].count)
+      end
+    end
+  end,
+  update = function(self, event, var1, var2, var3, world)
+    if event == "key" then
+      if var1 > 1 and var1 <= #self.inventory+1 then self.selected_slot = var1-1 end
+      local key = keys.getName(var1)
+      if key == "space" then
+        if not self.jumped and world:get_block(self.x, self.y+1).solid then
+          self.jump_power = self.max_jump_power
+          self.jumped = true
+        end
+      elseif key == "left" or key == "a" then
+        self:move(-1, 0, world)
+      elseif key == "right" or key == "d" then
+        self:move(1, 0, world)
+      end
+    end
+    if self.jump_power>0 then
+      self:move(0, -1, world)
+      self.jump_power = self.jump_power-1
+    else
+      self:move(0, 1, world)
+    end
+    if self.jump_power == 0 then
+      self.jumped = false
+    end
+  end,
+}
+player:pick_item(assets.items.pickaxe, 1)
+
+local world = {
+  blocks = {},
+  get_block = function(self, block_x, block_y)
+    return self.blocks[block_y][block_x] or {}
+  end,
+  set_block = function(self, block_x, block_y, block)
+    self.blocks[block_y] = self.blocks[block_y] or {}
+    self.blocks[block_y][block_x] = copy(block)
+  end,
+  generate = function(self, world_width, world_height, surface_height, max_difference)
+    local height_move = 0
+    local up_move = false
+
+    for x = 1, world_width do
+      if surface_height >= world_height-4 then height_move = -1
+      elseif surface_height <= 4 then height_move = 1
+      elseif math.random(1, 30) == 1 then flat = math.random(6, 13) height_move = 0
+      elseif not flat then height_move = height_move+math.random(-1, 1)
+      end
+
+      if flat then flat = flat - 1 end
+      if flat == 0 then flat = false end
+
+      if height_move == 1 and up_move then height_move = 0 end
+      if height_move == -1 then up_move = true end
+      if height_move == 1 or height_move == 0 then up_move = false end
+      if math.abs(height_move)>=max_difference then height_move = 0 end
+      surface_height = surface_height + height_move
+
+      for y = 1, world_width do
+        local block
+        if y==surface_height then
+          block = assets.blocks.grass
+        elseif y>surface_height then
+          block = assets.blocks.dirt
+        else
+          block = {}
+        end
+        self:set_block(x, y, block)
+      end
+    end
+  end,
+  update = function(self, event, var1, var2, var3, screen_off_x, screen_off_y)
+    if event == "mouse_click" then
+      local block_x = var2-screen_off_x+1
+      local block_y = var3-screen_off_y+1
+
+      local block
+      if var1==1 then
+        if player:get_selected_item() then
+          if player:get_selected_item().level and self:get_block(block_x, block_y).name then
+            player:pick_item(self:get_block(block_x, block_y), 1)
+            block = assets.blocks[self:get_block(block_x, block_y).behind]
+          elseif player:get_selected_item().hardness and self:get_block(block_x, block_y).name == player:get_selected_item().behind then
+            block = player:get_selected_item()
+            player:remove_item(1)
+          else
+            return
+          end
+          self:set_block(block_x, block_y, block)
+        end
+      end
+    end
+  end,
+  draw = function(self)
+    for y = 1, #self.blocks do
+      for x = 1, #self.blocks[y] do
+        if x<=screen_width-screen_off_x+1 and y<=screen_height-screen_off_y+1 then
+          local texture = self:get_block(x, y).texture
+          if texture then
+            draw_texture(texture, x, y)
+          end
+        end
+      end
+    end
+  end
+}
+
+world:generate(world_width, world_height, math.floor(world_width/2), 3)
+while true do
+  local start = os.clock()
+
+  local timer = os.startTimer(dt)
+  local event, var1, var2, var3 = os.pullEventRaw()
+  os.cancelTimer(timer)
+  if var1 == keys.q then error() end
+  if var1 == keys.f1 then debug = not debug end
+  if var1 == keys.f2 then clear_term = not clear_term end
+  player:update(event, var1, var2, var3, world)
+
+  buffer.setVisible(false)
+  oldterm = term.redirect(buffer)
+  screen_off_x = math.floor(screen_width/2)-player.x
+  screen_off_y = math.floor(screen_height/2)-player.y
+
+  if screen_off_x>-17 then screen_off_x = -17 end
+  if screen_off_x<-101 then screen_off_x = -101 end
+  if screen_off_y<-37 then screen_off_y = -37 end
+
+  world:update(event, var1, var2, var3, screen_off_x, screen_off_y)
+
+  buffer.clear()
+  if clear_term then oldterm.clear() end
+  paintutils.drawImage(background, -screen_off_x, -screen_off_y)
+  world:draw()
+  player:draw()
+
+  buffer.reposition(
+    screen_off_x,
+    screen_off_y
+  )
+  local delta = os.clock()-start
+  if delta<dt then
+    sleep(dt-delta)
+    correct_delta = os.clock()-start
+  end
+
+  term.redirect(oldterm)
+  buffer.setVisible(true)
+
+  if debug then
+    term.setCursorPos(1, 1)
+    textutils.tabulate(
+      colors.white, {"Delta", correct_delta, delta},
+      colors.white, {"Screenofset", screen_off_x, screen_off_y},
+      colors.white, {"Playercoords", player.x, player.y},
+      colors.white, {"Screensize", screen_width, screen_height},
+      colors.white, {"Worldsize", world_width, world_height}
+    )
+  end
+  player:draw_inventory(1, 3)
+end
+end
+
+local fine, mess = pcall(all)
+buffer = nil
+term.redirect(term.native())
+term.clear()
+term.setCursorPos(1, 1)
+if not fine then print(mess) end

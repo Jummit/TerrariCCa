@@ -1,0 +1,17 @@
+{
+  dirt = {
+    name = "dirt",
+    texture = {"·", "7", "c"},
+    solid = true,
+    behind = nil,
+    hardness = 1
+  },
+  grass = {
+    name = "grass",
+    texture = {"^", "5", "d"},
+    solid = true,
+    behind = "dirt",
+    not_get = true,
+    hardness = 1
+  }
+}
