@@ -7,11 +7,21 @@ local screen_off_x = 0
 local screen_off_y = 0
 local clear_term = false
 local debug = false
-local buffer = window.create(term.current(), 1, 1, world_width, world_height)
+buffer = window.create(term.current(), 1, 1, world_width, world_height)
 local assets = {
   blocks = {},
-  items = {}
+  items = {},
+  mods = {},
+  ores = {}
 }
+setmetatable(
+  assets.mods,
+  {
+    __index = function(tab, key)
+      return function() end
+    end
+  }
+)
 local background = paintutils.loadImage("assets/background")
 
 local mods_files = fs.list("assets")
@@ -22,6 +32,7 @@ for mods_number = 1, #mods_files do
       local asset = textutils.unserialize(
         fs.open("assets/"..mods_files[mods_number].."/"..assets_files[asset_number], "r").readAll()
       )
+      if not asset then error("Error in mod '"..mods_files[mods_number].."' in file '"..assets_files[asset_number].."'") end
       for asset_key, asset_value in pairs(asset) do
         assets[assets_files[asset_number]][asset_key] = asset_value
       end
@@ -29,8 +40,38 @@ for mods_number = 1, #mods_files do
   end
 end
 
-local function distance()
-  return math.root()
+local save = {
+  world = function(world, filename)
+    local file = fs.open("saves/worlds/"..filename, "w")
+    local blocks = world.blocks
+    local pallette = {}
+    local pallettecount = 0
+    local worldstrings = {}
+    for y = 1, #blocks do
+      worldstrings[y] = ""
+      for x = 1, #blocks[y] do
+        blockname = blocks[y][x].name or "air"
+        if not pallette[blockname] then
+          pallette[blockname] = pallettecount
+          pallettecount = pallettecount+1
+        end
+        worldstrings[y] = worldstrings[y]..pallette[blockname]
+      end
+    end
+    for i = 1, #worldstrings do
+      file.write(worldstrings[i].."\n")
+    end
+    file.close()
+  end
+}
+
+local load = {
+  world = function()
+  end
+}
+
+local function distance(x1, y1, x2, y2)
+  return math.sqrt((x2-x1)^2+(y2-y1)^2)^2
 end
 
 local function copy(tab)
@@ -48,6 +89,7 @@ local function copy(tab)
 end
 
 local function draw_texture(texture, x, y)
+  assets.mods.drawtexture(texture, x, y)
   term.setCursorPos(x, y)
   term.blit(texture[1], texture[2], texture[3])
 end
@@ -95,18 +137,6 @@ local player = {
   draw = function(self)
     draw_texture(self.texture, self.x, self.y)
   end,
-  draw_inventory = function(self, x, y)
-    for slot = 1, #self.inventory do
-      if slot == self.selected_slot then term.setBackgroundColor(colors.red)
-      else term.setBackgroundColor(colors.lightBlue) end
-      paintutils.drawFilledBox(x+slot*3-1, y-1, x+slot*3+1, y+1)
-      if self.inventory[slot] then
-        draw_texture(self.inventory[slot].texture, x+slot*3, y)
-        term.setCursorPos(x+slot*3, y+1)
-        term.write(self.inventory[slot].count)
-      end
-    end
-  end,
   update = function(self, event, var1, var2, var3, world)
     if event == "key" then
       if var1 > 1 and var1 <= #self.inventory+1 then self.selected_slot = var1-1 end
@@ -131,18 +161,47 @@ local player = {
     if self.jump_power == 0 then
       self.jumped = false
     end
-  end,
+  end
 }
 player:pick_item(assets.items.pickaxe, 1)
 
 local world = {
   blocks = {},
   get_block = function(self, block_x, block_y)
-    return self.blocks[block_y][block_x] or {}
+    if self.blocks[block_y] then
+      return self.blocks[block_y][block_x] or {}
+    else
+      return {}
+    end
   end,
   set_block = function(self, block_x, block_y, block)
+    if type(block) == "string" then block = assets.blocks[block] end
     self.blocks[block_y] = self.blocks[block_y] or {}
     self.blocks[block_y][block_x] = copy(block)
+  end,
+  generate_ore = function(self, ore, surface_height)
+    if math.random(ore.rarity) == 1 then
+      local ore_x = math.random(world_width)
+      local ore_y = math.random(world_height)
+      local spawn_block = self:get_block(ore_x, ore_y)
+      spawn_block.name = spawn_block.name or "air"
+      for _, onblock in pairs(ore.onblocks) do
+        if onblock == spawn_block.name then
+          if ore_y<surface_height+ore.max and ore_y>surface_height-ore.min and (ore.dogen==nil or ore.dogen(ore_x, ore_y, self)) then
+            if ore.gen then ore.gen(ore_x, ore_y, self) end
+            local height_size = math.floor(ore.size+ore.size/3)
+            for x = -height_size, height_size do
+              for y = -ore.size, ore.size do
+                if distance(ore_x, ore_y, ore_x+x, ore_y+y)<=ore.size then
+                  self:set_block(ore_x+x, ore_y+y, assets.blocks[ore.block])
+                end
+              end
+            end
+            return true
+          end
+        end
+      end
+    end
   end,
   generate = function(self, world_width, world_height, surface_height, max_difference)
     local height_move = 0
@@ -173,23 +232,40 @@ local world = {
         else
           block = {}
         end
+        block = assets.mods.generate(x, y, surface_height, world) or block
         self:set_block(x, y, block)
       end
     end
+
+    local time = os.clock()
+    for ore_name, ore in pairs(assets.ores) do
+      for _ = 1, ore.count do
+        while not self:generate_ore(ore, surface_height) do
+          if os.clock()-time > 5 then error("generating ore "..ore_name.." took too long") end
+        end
+      end
+    end
+  end,
+  breakblock = function(self, selected_item, block_x, block_y, block)
+    player:pick_item(block, 1)
+    return assets.blocks[self:get_block(block_x, block_y).behind] or self:get_block(block_x, block_y).behind
   end,
   update = function(self, event, var1, var2, var3, screen_off_x, screen_off_y)
     if event == "mouse_click" then
       local block_x = var2-screen_off_x+1
       local block_y = var3-screen_off_y+1
 
-      local block
+      local block = self:get_block(block_x, block_y)
       if var1==1 then
-        if player:get_selected_item() then
-          if player:get_selected_item().level and self:get_block(block_x, block_y).name then
-            player:pick_item(self:get_block(block_x, block_y), 1)
-            block = assets.blocks[self:get_block(block_x, block_y).behind]
-          elseif player:get_selected_item().hardness and self:get_block(block_x, block_y).name == player:get_selected_item().behind then
-            block = player:get_selected_item()
+        local selected_item = player:get_selected_item()
+        if selected_item then
+          if selected_item.level and block.name then
+            if selected_item.level >= block.hardness then
+              block = self:breakblock(selected_item, block_x, block_y, block)
+            end
+          elseif selected_item.hardness and not block.solid then
+            block = selected_item
+            block.behind = self:get_block(block_x, block_y)
             player:remove_item(1)
           else
             return
@@ -213,7 +289,8 @@ local world = {
   end
 }
 
-world:generate(world_width, world_height, math.floor(world_width/2), 3)
+world:generate(world_width, world_height, math.floor(world_width/3), 3)
+assets.mods.init()
 while true do
   local start = os.clock()
 
@@ -221,6 +298,7 @@ while true do
   local event, var1, var2, var3 = os.pullEventRaw()
   os.cancelTimer(timer)
   if var1 == keys.q then error() end
+  if var1 == keys.s then save.world(world, "test") end
   if var1 == keys.f1 then debug = not debug end
   if var1 == keys.f2 then clear_term = not clear_term end
   player:update(event, var1, var2, var3, world)
@@ -235,12 +313,15 @@ while true do
   if screen_off_y<-37 then screen_off_y = -37 end
 
   world:update(event, var1, var2, var3, screen_off_x, screen_off_y)
+  assets.mods.update(event, var1, var2, var3, screen_off_x, screen_off_y)
 
+  buffer.setBackgroundColor(colors.lightBlue)
   buffer.clear()
   if clear_term then oldterm.clear() end
-  paintutils.drawImage(background, -screen_off_x, -screen_off_y)
+  paintutils.drawImage(background, -screen_off_x+screen_off_x/10+9, -screen_off_y+3)
   world:draw()
   player:draw()
+  assets.mods.draw()
 
   buffer.reposition(
     screen_off_x,
@@ -256,22 +337,55 @@ while true do
   buffer.setVisible(true)
 
   if debug then
-    term.setCursorPos(1, 1)
+    term.setBackgroundColor(colors.black)
+    term.setTextColor(colors.white)
+    term.setCursorPos(1, 6)
     textutils.tabulate(
       colors.white, {"Delta", correct_delta, delta},
-      colors.white, {"Screenofset", screen_off_x, screen_off_y},
-      colors.white, {"Playercoords", player.x, player.y},
-      colors.white, {"Screensize", screen_width, screen_height},
-      colors.white, {"Worldsize", world_width, world_height}
+      colors.white, {"Screen offset", screen_off_x, screen_off_y},
+      colors.white, {"Player coords", player.x, player.y},
+      colors.white, {"Screen size", screen_width, screen_height},
+      colors.white, {"Worldsize", world_width, world_height},
+      colors.white, {event, tostring(var1), tostring(var2)}
     )
+    term.setCursorPos(1, 13)
+    local selected_item = player:get_selected_item()
+    if selected_item then
+      if selected_item.level then
+        textutils.tabulate(
+          colors.blue, {"Name", selected_item.name},
+          colors.blue, {"Level", selected_item.level}
+        )
+      else
+        term.setBackgroundColor(colors.black)
+        term.setTextColor(colors.white)
+        if type(selected_item.behind) == "table" then selected_item.behind = selected_item.behind.name end
+        textutils.tabulate(
+          colors.green, {"Name", selected_item.name},
+          colors.green, {"Behind", selected_item.behind or "nothing XD"},
+          colors.green, {"Solid", tostring(selected_item.solid)},
+          colors.green, {"Hardness", selected_item.hardness}
+        )
+      end
+    end
+    assets.mods.debug()
   end
-  player:draw_inventory(1, 3)
-end
+  for slot = 1, #player.inventory do
+    if slot == player.selected_slot then term.setBackgroundColor(colors.gray)
+    else term.setBackgroundColor(colors.lightGray) end
+      paintutils.drawFilledBox(slot*3-1, 2, slot*3+1, 4)
+      if player.inventory[slot] then
+        draw_texture(player.inventory[slot].texture, slot*3, 3)
+        term.setCursorPos(slot*3, 4)
+        term.write(player.inventory[slot].count)
+      end
+    end
+  end
 end
 
 local fine, mess = pcall(all)
-buffer = nil
-term.redirect(term.native())
+if term.setVisible then term.setVisible(true) end
+term.setBackgroundColor(colors.black)
 term.clear()
 term.setCursorPos(1, 1)
-if not fine then print(mess) end
+if mess then print(mess) end

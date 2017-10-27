@@ -1,9 +1,14 @@
 {
+  dirtwall = {
+    name = "dirtwall",
+    texture = {"#", "c", "7"},
+    hardness = 1000
+  },
   dirt = {
     name = "dirt",
     texture = {"·", "7", "c"},
+    behind = "dirtwall",
     solid = true,
-    behind = nil,
     hardness = 1
   },
   grass = {
@@ -13,5 +18,23 @@
     behind = "dirt",
     not_get = true,
     hardness = 1
+  },
+  leaves = {
+    name = "leaves",
+    texture = {"#", "d", "5"},
+    not_get = true,
+    hardness = 1
+  },
+  wood = {
+    name = "wood",
+    texture = {"m", "7", "c"},
+    hardness = 1
+  },
+  cooper = {
+    name = "cooper",
+    texture = {"#", "8", "1"},
+    solid = true,
+    behind = "dirtwall",
+    hardness = 4
   }
 }

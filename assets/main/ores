@@ -1,0 +1,46 @@
+{
+  tree = {
+    max = 20,
+    min = 20,
+    onblocks = {"air"},
+    block = "leaves",
+    count = 10,
+    size = 10,
+    rarity = 10,
+    dogen = function(x, y, world)
+      local tree_y = 1
+      while true do
+        if world:get_block(x+1, y+tree_y).name == "wood" or world:get_block(x-1, y+tree_y).name == "wood" then tree_y = 0 break end
+        if not world:get_block(x, y+tree_y).solid then
+          tree_y = tree_y + 1
+        else break
+        end
+      end
+
+      return (tree_y>10) and (tree_y<20)
+    end,
+    gen = function(x, y, world)
+      local tree_y = 1
+      while true do
+        if not world:get_block(x, y+tree_y).solid then
+          world:set_block(x, y+tree_y, "wood")
+          tree_y = tree_y + 1
+        else
+          break
+        end
+      end
+    end
+  },
+  cooper = {
+    max = 100,
+    min = 100,
+    onblocks = {"dirt"},
+    block = "cooper",
+    count = 5,
+    size = 10,
+    rarity = 10,
+    dogen = function(x, y, world)
+      return world:get_block(x, y-16).name ~= "air"
+    end
+  }
+}
